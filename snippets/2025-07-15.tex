@@ -1,4 +1,66 @@
 \section{Doping Profile Mapping}
 
 
-\section{Abou}
+Today's work focused on understanding how the doping profile maps onto the simulation grids in both Galene and our own simulator. This mapping is crucial for accurately comparing simulation results. Currently, we are using a uniform grid spacing of 1 nm. However, to precisely analyze the doping profile's mapping, we plan to double the grid density by halving the grid spacing.
+
+Several essential plots remain pending, notably:
+
+\begin{enumerate}
+\item A current comparison plot between Galene and our simulator.
+\item A detailed comparison plot after refining the grid.
+\end{enumerate}
+
+These plots will provide deeper insights into discrepancies and alignments between both simulation approaches.
+
+\section{About the Codes}
+
+How it works internally:
+
+\begin{enumerate}
+  \item \textbf{Direct Binary Reading:} The \texttt{gal\_file\_init} subroutine (lines 126--197) directly reads the binary OSV file using Fortran's unformatted file access. It doesn't need conversion to ASCII first.
+  \item \textbf{Block-based Structure:} The OSV file contains data blocks with a specific binary format:
+    \begin{itemize}
+      \item Each block has a data type indicator (integer, real, or character)
+      \item Block header contains: number of data elements + size of name
+      \item Block name (character string)
+      \item Block data (based on type)
+    \end{itemize}
+  \item \textbf{Data Extraction:} The \texttt{gal\_file\_get\_block} function (lines 199--212) retrieves specific data blocks by name, similar to what \texttt{gal3\_ex} would do.
+\end{enumerate}
+
+Key differences from command-line approach:
+
+Instead of:
+\begin{itemize}
+  \item \texttt{gal3 -c XXX.OSV} \hspace{1em} Convert to ASCII
+  \item \texttt{gal3\_ex -extract ...} \hspace{1em} Extract values
+\end{itemize}
+
+The code does:
+\begin{itemize}
+  \item \texttt{call gal\_fl\%init("DD.OSV")} \hspace{1em} Direct binary read
+  \item \texttt{b => gal\_fl\%get\_block("n-density")} \hspace{1em} Extract by name
+  \item \texttt{values = b\%rdata} \hspace{1em} Get real data
+\end{itemize}
+
+How it processes the data:
+
+\begin{enumerate}
+  \item \textbf{Units \& Normalization:} Lines 134--168 define physical units for various quantities, and \texttt{normalization\_m} handles unit conversions automatically.
+  \item \textbf{Grid Integration:} In \texttt{device\_params.f90}, the galene data is integrated into the grid structure:
+    \begin{itemize}
+      \item Line 178: \texttt{call this\%gal\_fl\%init(gal\_filename\%s)} --- loads the OSV file
+      \item Lines 184--194: Extract material information and properties
+      \item Lines 517--534: Use volume descriptions to set up the computational grid
+    \end{itemize}
+  \item \textbf{Data Types:} The code handles three data types (lines 17--19):
+    \begin{itemize}
+      \item \texttt{GALDATA\_INT = 1} (integer data)
+      \item \texttt{GALDATA\_REAL = 2} (real data)
+      \item \texttt{GALDATA\_CHAR = 3} (character data)
+    \end{itemize}
+\end{enumerate}
+
+The m4 macros handle platform-specific details like integer sizes and ensure compatibility across different systems.
+
+This approach eliminates the need for external preprocessing tools by implementing the OSV file reader directly in Fortran, providing seamless integration with the simulation workflow.
