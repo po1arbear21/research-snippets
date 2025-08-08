@@ -46,7 +46,8 @@ The code does:
 How it processes the data:
 
 \begin{enumerate}
-  \item \textbf{Units \& Normalization:} Lines 134--168 define physical units for various quantities, and \texttt{normalization\_m} handles unit conversions automatically.
+  \item \textbf{Units \& Normalization:} Lines 134--168 define physical units 
+    for various quantities. The normalization module handles unit conversions automatically.
   \item \textbf{Grid Integration:} In \texttt{device\_params.f90}, the galene data is integrated into the grid structure:
     \begin{itemize}
       \item Line 178: \texttt{call this\%gal\_fl\%init(gal\_filename\%s)} --- loads the OSV file
