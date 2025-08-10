@@ -99,59 +99,144 @@ Up to this point, the grid spacing is set to 1 nm for both simulators. Figure~\r
 \end{figure}
 
 \subsection{Vertical FET Structure with Perforated Source}
- The current workaround is to use a partially doped active layer with ohmic contact as a substitute for the Schottky contact. This approach allows us to proceed with simulations while we work on integrating the Schottky contact feature into our simulator.
+
+\subsubsection{VOFET (Vertical Organic Field-Effect Transistor)}
+
+\paragraph{Device Architecture}
+Vertical field-effect transistors (VFETs) stack source and drain vertically so the channel length is set by the semiconductor thickness, enabling high current density even in low-mobility materials. A key "pure" VFET variant replaces the compact source with a patterned (perforated) source electrode placed between gate/dielectric and the semiconductor. This geometry mitigates electrostatic screening by the source, avoiding the need for super-capacitive (ion-based) dielectrics and lowering the frequency penalty typical of electric-double-layer gates. In practice, patterned sources can be realized as metal grids (e.g., via block-copolymer lithography) or conductive porous networks (e.g., CNT films), with channel length $L$ defined by the active-layer thickness and device area by the overlap of gate/source/drain.
+
+\paragraph{Operating Principle}
+In unbiased devices, both source and drain are blocking (Schottky-like) contacts, so current is contact-limited (CL) and well described by field-enhanced thermionic emission. Under gate bias, the electric field concentrates on the perforation sidewalls (the patterned-electrode/semiconductor interface inside the holes), reducing the injection barrier locally. Charge then accumulates at the perforation bottoms and behaves as an ohmic reservoir (\textbf{"virtual contact"}), shifting the device into a space-charge-limited (SCL) regime where current is controlled by bulk transport rather than injection. Moreover, the spatial origin of ON and OFF currents is different (perforation sidewalls vs. the source top facet), which explains the distinct ON/OFF behaviors.
+
+\paragraph{Complementary Gate Control Modes}
+Two complementary gate actions control current:
+\begin{enumerate}
+    \item \textbf{Virtual contact formation (normally-OFF $\rightarrow$ ON):}
+    Gate bias focuses lateral fields on the perforation sidewalls of the source, lowers the Schottky barrier there, and extracts carriers into the perforation bottom. This accumulated charge acts like an ohmic "virtual contact", launching a vertical space-charge channel toward the drain. ON current is then mobility-/space-charge-limited rather than contact-limited.
+    
+    \item \textbf{Gate-induced internal barrier (normally-ON $\rightarrow$ OFF):}
+    With opposite gate polarity (for n-type, negative $V_G$), the gate creates a laterally oriented potential ridge between the patterned source and the drain that repels already injected carriers—analogous to a solid-state triode grid—so the device turns off. The barrier height grows roughly linearly with $|V_G|$ and decays exponentially away from the perforation edge.
+\end{enumerate}
+
+A practical consequence of the geometry is an "inversion point" above each perforation: along the perforation axis the vertical field flips sign; the potential difference from the perforation bottom to this point behaves like an effective barrier that controls how much charge reaches the upper channel. Moving this inversion point upward (e.g., with thicker $h_s$) degrades ON current and ON/OFF ratio.
+
+\paragraph{Limiting Current Regimes}
+The patterned-electrode VFET admits two robust limiting forms that are convenient for analysis and parameter extraction:
+
+\begin{itemize}
+    \item \textbf{OFF (CL) regime} — injection from the source top facet:
+    \begin{equation}
+    J_{\mathrm{OFF}} = q \ln N_0 E_\perp \exp\left(-\frac{q u_b}{kT}\right) (1-\text{FF})
+    \end{equation}
+    with image-force barrier lowering $u_b = u_{b0}-\sqrt{qE_\perp/(4\pi\varepsilon_0\varepsilon)}$ and $E_\perp \approx V_{DS}/L_{\mathrm{OFF}}$. The factor $(1-\text{FF})$ accounts for conduction only through the non-perforated area.
+    
+    \item \textbf{ON (SCL) regime} — injection from perforation sidewalls (virtual contact):
+    \begin{equation}
+    J_{\mathrm{ON}} = \frac{9}{8} \varepsilon_0\varepsilon \mu \frac{V_{DS}^2}{L^{3}} \text{FF}
+    \end{equation}
+    reflecting that ON current originates from the perforation area.
+\end{itemize}
+
+Dividing the SCL by the CL form gives a compact expression for the ON/OFF ratio that highlights the roles of fill factor FF, channel length $L$, and especially the intrinsic barrier $\phi_{b0}$ at the patterned-electrode/semiconductor interface (the analysis is most accurate when $\phi_{b0} \gtrsim 0.7$ eV so the CL description is valid).
+
+\paragraph{Geometry-Performance Relationships}
+Two geometric levers dominate:
+\begin{itemize}
+    \item \textbf{Source thickness $h_s$ ("tunnel"/shielding effect):} Increasing $h_s$ raises the aspect ratio (thickness/diameter), which confines the virtual contact within the perforation and shields it from the drain field, reducing ON current and ON/OFF ratio (experimentally, a $\sim$5× drop moving from $h_s \sim 7$ nm to 13 nm was observed). Edge morphology matters: spiky edges enhance confinement; smoother edges help.
+    
+    \item \textbf{Perforation diameter $D$, fill factor FF, and dielectric thickness $h_d$:} Larger FF boosts ON current (more active sidewall length) while reducing the OFF conduction area. Electrostatics scale with the $h_d$:$D$ ratio (well-behaved devices favor $h_d$:$D \gtrsim 1$:3); increasing $D$ has a similar effect to decreasing $h_d$.
+\end{itemize}
+
+These observations rationalize why thin, highly perforated sources with well-controlled sidewalls maximize ON current without compromising OFF suppression.
+
+\paragraph{Boundary Conditions}
+State-of-the-art analyses solve 2D Poisson + steady-state drift–diffusion with Scharfetter–Gummel discretization. The electrostatic potential is solved everywhere (metals, dielectric, semiconductor), while carrier densities are solved only inside the semiconductor; thus, some BCs are interior (at metal/semiconductor and dielectric/semiconductor interfaces). Metals are treated with negligible Debye length (fixed work functions). Electrode BCs for potential are Dirichlet with applied biases ($V_G$, $V_S = 0$, $V_D$) plus a contact potential $u_{b0}$. 
+
+Carrier BCs at metal/semiconductor assume local thermionic equilibrium with field-lowered barrier:
+\begin{equation}
+n = N_0 \exp\left(-\frac{q u_b}{kT}\right), \quad u_b = u_{b0}-\Delta u \approx u_{b0}-\Delta x E_\perp
+\end{equation}
+with $\Delta x$ taken as an intermolecular/mesh scale ($\sim$1 nm). Lateral BCs are cyclic/periodic at the unit-cell sidewalls to represent an infinite perforation array. At the dielectric/semiconductor interface at each perforation bottom, the interface is treated as insulating (no surface charge, zero normal current). Numerically, charge-neutral initial conditions and damped iterations are used for robust convergence.
+
+\paragraph{Implications for Perovskite VFETs}
+Perovskites introduce mixed ionic–electronic transport and defect-rich energetics. In practice, retain the electronic BCs above, but extend the model to include ionic continuity equations with blocking or partially blocking ionic BCs at metals and dielectrics (to capture gate-field screening, hysteresis, and time-dependent turn-on). Where OFF leakage via the source top facet is significant, include image-force barrier lowering in CL fits (analytical term as above) and consider field-dependent mobility and trap-assisted recombination within the semiconductor.
+
+\subsubsection{Current Simulation Approach}
+
+Since we do not have Schottky contacts implemented in our simulator, the current workaround is to use a partially doped active layer with ohmic contacts as a substitute for the Schottky contact. This approach allows us to proceed with simulations while we work on integrating the Schottky contact feature into our simulator.
+
+The structure used is a partial element which contains the gate at the bottom, the dielectric layer above, a section of the perforated source alongside the gap between the sources, the active layer above, and the drain contact with the following parameters:
+
+\begin{verbatim}
+# Vertical FET dimensions
+L_total = 200        # Total device width (nm)
+x0 = -100           # Left boundary
+xL = 100            # Right boundary
+x_s = 0             # Source/aperture boundary (creates 100nm source + 100nm aperture)
+
+d_ox = 5            # Gate oxide thickness (nm)
+y_ox = 5            # Top of gate oxide
+y_s = 25            # Top of source layer (20nm source thickness)
+y_d = 55            # Top of active layer (30nm channel length)
+
+# Doping levels
+Nd_light = 1e15    # Light doping for channel
+Nd_heavy = 1e20    # Heavy doping for aperture
+\end{verbatim}
+
+The schematic is shown in the figure below.
+
+\begin{figure}[H]
+    \centering
+    % placeholder for figure
+    \caption{Schematic of the VFET structure with partial doping}
+    \label{fig:vfet_schematic}
+\end{figure}
+
+With the gate voltage $V_g$ set to 0.1 V (which should be irrelevant in this case since the original purpose of the gate voltage is to form the carrier reservoir or virtual contact, and with our setup this is already formed) and a drain voltage of 1 V, we have the following results:
+
+\begin{figure}[H]
+    \centering
+    % placeholder for figure  
+    \caption{Simulation results for the VFET structure}
+    \label{fig:vfet_results}
+\end{figure}
+
+Eventually, we will need to implement the correct physics to show the proper current direction and other characteristics.
+
 
 \subsection{Schottky Contact Implementation}
-The current version of our simulator does not support Schottky contacts. To simulate the devices like RFET or VFET, the implementation of Schottky contact is necessary.
-For the current ohmic contact, we have charge neutrality $n_0-p_0 = N_D - N_A$ and equilibrium assumed, which for Boltzmann statistics gives:
-$\phi = V_k + \frac{kT}{q} asinh \left( \frac{(N_D - N_A)}{2 n^2_{i,eff}} \right)$
+The current version of our simulator does not support Schottky contacts. To simulate devices like RFETs or VFETs, the implementation of Schottky contacts is necessary.
 
-in the Schottky contact case,
-$\phi = V_k - \phi_B + \frac{kT}{q} \ln \left( \frac{N_C}{n_{i,eff}} \right)$
-is used.
+For the current ohmic contact, we have charge neutrality $n_0-p_0 = N_D - N_A$ and assume equilibrium, which for Boltzmann statistics gives:
+\begin{equation}
+\phi = V_k + \frac{kT}{q} \text{asinh} \left( \frac{N_D - N_A}{2 n^2_{i,\text{eff}}} \right)
+\end{equation}
 
-Another aspect to consider is the different type of BC, instead of the Dirchlet BC, here a Robin (mixed) BC is used, which gives:
-$J_n (vector) \cdot n(vector) = q v_n (n-n^B_0)$
-$j_P$ Here
+In the Schottky contact case, the following expression is used:
+\begin{equation}
+\phi = V_k - \phi_B + \frac{kT}{q} \ln \left( \frac{N_C}{n_{i,\text{eff}}} \right)
+\end{equation}
+
+Another aspect to consider is the different type of boundary condition. Instead of the Dirichlet BC, a Robin (mixed) BC is used, which gives:
+\begin{equation}
+\vec{J}_n \cdot \vec{n} = q v_n (n-n^B_0)
+\end{equation}
+\begin{equation}
+\vec{J}_p \cdot \vec{n} = q v_p (p-p^B_0)
+\end{equation}
 with
-$n^B_0 = N_c exp(-qphi_B/kT)$
-and $p^B_0 = N_v exp(-qphi_B/kT)$
+\begin{equation}
+n^B_0 = N_C \exp\left(-\frac{q\phi_B}{kT}\right)
+\end{equation}
+and 
+\begin{equation}
+p^B_0 = N_V \exp\left(-\frac{q(\chi + E_g - \phi_B)}{kT}\right)
+\end{equation}
 
-where phi_B is the barrier height (the difference between the contact workfunction and the electron affinity of the semiconductor). v_n and v_p are the thermoionic emission velocities for electrons and holes, respectively n0B and p0B are the equilibrium densities.
-
-
-
-
-\subsection{Week 3 (July 15th)}
-\input{2025-07-15.tex}
-
+where $\phi_B$ is the barrier height (the difference between the contact work function and the electron affinity of the semiconductor). $v_n$ and $v_p$ are the thermoionic emission velocities for electrons and holes, respectively. $n^B_0$ and $p^B_0$ are the equilibrium densities at the Schottky contact.
 
 
-\subsubsection{New Research Developments}
-\begin{enumerate}
-    \item \textbf{Design of a full comprehensive Galene tool in simulator:} Initiated development of an integrated Galene interface within our simulation framework to streamline the workflow and eliminate external tool dependencies.
-
-    \item \textbf{Test a vertical FET structure with perforated source:} Explored vertical FET configurations using partially doped active layer with ohmic contact as a workaround to replace Schottky contact, providing a more accessible implementation path.
-\end{enumerate}
-
-\subsection{TODO Items}
-\begin{enumerate}
-    \item Compare Galene simulation result and result from simulator for 2D nanowire
-    \item Investigate how the doping profile is mapped into the simulator
-    \item Create a Galene profile to test for VFET
-    \item Add the Schottky contact to own simulator
-    \item Grid refinement analysis - halving grid spacing from 1 nm to 0.5 nm
-    \item Current comparison plots between Galene and our simulator
-    \item Detailed analysis of doping profile mapping accuracy
-\end{enumerate}
-
-\subsection{Technical Achievements}
-\begin{itemize}
-    \item Successfully implemented direct OSV file reading in Fortran
-    \item Eliminated need for external preprocessing tools (gal3, gal3\_ex)
-    \item Established seamless integration between Galene data and simulation grid
-    \item Implemented proper unit normalization for physical quantities
-\end{itemize}
 
 \subsection{Next Steps}
 \begin{itemize}
